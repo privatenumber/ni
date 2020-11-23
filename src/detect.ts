@@ -6,25 +6,27 @@ import inquirer from 'inquirer'
 import { LOCKS, INSTALL_PAGE } from './agents'
 import { cmdExists } from './utils'
 
-export async function detect() {
+export async function detect({ autoInstall }) {
   const result = await findUp(Object.keys(LOCKS))
   const agent = (result ? LOCKS[path.basename(result)] : null)
 
   if (agent && !cmdExists(agent)) {
-    if (process.env.CI)
-      throw new Error(`Detected ${agent} but it doesn't seem to be installed`)
+    if (!autoInstall) {
+      if (process.env.CI)
+        throw new Error(`Detected ${agent} but it doesn't seem to be installed`)
 
-    const link = terminalLink(agent, INSTALL_PAGE[agent])
-    console.log(`Detected ${link} but it doesn't seem to be installed.\n`)
+      const link = terminalLink(agent, INSTALL_PAGE[agent])
+      console.log(`Detected ${link} but it doesn't seem to be installed.\n`)
 
-    const { tryInstall } = await inquirer.prompt([{
-      name: 'tryInstall',
-      type: 'confirm',
-      message: `Would you like to globally install ${link}?`,
-    }])
+      const { tryInstall } = await inquirer.prompt([{
+        name: 'tryInstall',
+        type: 'confirm',
+        message: `Would you like to globally install ${link}?`,
+      }])
 
-    if (!tryInstall)
-      process.exit(1)
+      if (!tryInstall)
+        process.exit(1)
+    }
 
     execSync(`npm i -g ${agent}`, { stdio: 'inherit' })
   }
